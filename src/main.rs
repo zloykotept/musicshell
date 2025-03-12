@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 
 use anyhow::{Ok, Result};
-use config::Config;
+use config::{Config, Parser};
 use homedir::my_home;
 
 pub mod config;
@@ -15,7 +15,8 @@ fn main() -> Result<()> {
         File::create(&config_path)?;
     }
 
-    let config = Config::from(&config_path);
+    let parser = Parser::new(config_path.clone());
+    let config = Config::new(&parser);
 
     Ok(())
 }

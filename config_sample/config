@@ -1,0 +1,14 @@
+# This is a standart config file
+[keymaps_local]
+j = action Down
+k = action Up
+l = action ChildDir
+h = action ParentDir
+q = action Exit
+CTRL+c = action Exit
+
+[colors]
+# here will be themes
+(gruvbox)
+text = ffffff
+background = 000000 # Like this shit
