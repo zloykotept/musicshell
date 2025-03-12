@@ -125,6 +125,7 @@ impl Parser {
                 in_block = true;
                 continue;
             } else if line.starts_with('[') && line.ends_with(']') {
+                in_block = false;
                 continue;
             }
 
