@@ -2,17 +2,11 @@ use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
+    usize,
 };
 
+use crate::{get_action, workspace::*};
 use crossterm::event::KeyEvent;
-
-pub enum Action {
-    Up,
-    Down,
-    ChildDir,
-    ParentDir,
-    Exit,
-}
 
 pub struct Config {
     pub keymap_local: HashMap<KeyEvent, Action>,
@@ -46,12 +40,18 @@ impl Parser {
     }
 
     pub fn parse_keys(&self, global: bool) -> HashMap<KeyEvent, Action> {
-        let mut maps = HashMap::new();
-        let vars = if global {
+        let vars_act = if global {
             self.parse_vars("keymaps_global", false)
         } else {
             self.parse_vars("keymaps_local", false)
         };
+        let vars_std = if global {
+            self.parse_vars("keymaps_global", true)
+        } else {
+            self.parse_vars("keymaps_local", true)
+        };
+
+        let maps;
 
         maps
     }

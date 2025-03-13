@@ -4,7 +4,9 @@ use anyhow::{Ok, Result};
 use config::{Config, Parser};
 use homedir::my_home;
 
-pub mod config;
+mod config;
+mod macros;
+mod workspace;
 
 fn main() -> Result<()> {
     let home = my_home().unwrap().expect("Can't get home directory");
