@@ -1,14 +1,62 @@
 # This is a standart config file
 [keymaps_local]
-j = action Down
-k = action Up
-l = action ChildDir
-h = action ParentDir
-q = action Exit
-CTRL+c = action Exit
 
-[colors]
-# here will be themes
+# Navigation
+j = Down
+k = Up
+l = ChildDir
+h = ParentDir
+ARROW_DOWN = Down
+ARROW_UP = Up
+ARROW_RIGHT = ChildDir
+ARROW_LEFT = ParentDir
+q = Exit
+CTRL+c = Exit
+
+# Filesystem
+y = Copy
+d = Delete
+c = Cut
+p = Paste
+r = Rename
+o = Play
+a = CreateDir
+/ = Find
+v = ToggleVisualMode
+SHIFT+v = SelectAll
+TAB = ToggleTreeView
+
+# Qeue
+SHIFT+d = ClearQeue
+i = AddToQeue
+SHIFT+i = AddAllToQeue
+
+# Player (args: seconds)
+SPACE = TogglePause
+CTRL+r = ToggleRepeat
+CTRL+j = QeueNext
+CTRL+k = QeuePrev
+CTRL+l = RewindForward args 5
+CTRL+h = RewindBack args 5
+CTRL+ARROW_DOWN = QeueNext
+CTRL+ARROW_UP = QeuePrev
+CTRL+ARROW_RIGHT = RewindForward args 5
+CTRL+ARROW_LEFT = RewindBack args 5
+
+# args: (Step 0-100)
+[ = VolumeDecrease args 5
+] = VolumeIncrease args 5
+
+# theme selector
+t = SelectTheme
+
+# Make your own following examples
+[themes]
 (gruvbox)
 text = ffffff
-background = 000000 # Like this shit
+text_headline = ffffff
+background = ffffff
+border = ffffff
+button = ffffff
+progress_bar_elapsed = ffffff
+progress_bar_remaining = ffffff

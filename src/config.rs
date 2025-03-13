@@ -31,7 +31,6 @@ impl Config {
 }
 
 pub struct Parser {
-    file: PathBuf,
     std_config: String,
     act_config: String,
 }
@@ -41,7 +40,6 @@ impl Parser {
         let std_config = include_str!("../config_sample/config").to_string();
         let act_config = fs::read_to_string(&file).unwrap();
         Parser {
-            file,
             std_config,
             act_config,
         }
@@ -58,7 +56,7 @@ impl Parser {
         maps
     }
 
-    fn parse_vars(&self, block: &str, std: bool) -> Vec<(String, String)> {
+    fn parse_vars<'a>(&'a self, block: &str, std: bool) -> Vec<(&'a str, &'a str)> {
         let mut in_block = false;
 
         let iterator = if std {
@@ -70,13 +68,13 @@ impl Parser {
         iterator
             .map(|line| {
                 if let Some(i) = line.find('#') {
-                    line[..i].to_string()
+                    &line[..i]
                 } else {
-                    line.to_string()
+                    line
                 }
             })
             .filter_map(|line| {
-                let line = line.trim().to_string();
+                let line = line.trim();
 
                 if line == format!("[{}]", block) {
                     in_block = true;
@@ -85,9 +83,9 @@ impl Parser {
                 }
 
                 if in_block {
-                    let splitted: Vec<String> = line.split(" = ").map(String::from).collect();
+                    let splitted: Vec<&str> = line.split(" = ").collect();
                     if splitted.len() == 2 {
-                        Some((splitted[0].clone(), splitted[1].clone()))
+                        Some((splitted[0], splitted[1]))
                     } else {
                         None
                     }
@@ -98,10 +96,14 @@ impl Parser {
             .collect()
     }
 
-    fn parse_subblocks(&self, block: &str, std: bool) -> Vec<(String, Vec<(String, String)>)> {
+    fn parse_subblocks<'a>(
+        &'a self,
+        block: &str,
+        std: bool,
+    ) -> Vec<(&'a str, Vec<(&'a str, &'a str)>)> {
         let mut in_block = false;
         let mut result = Vec::new();
-        let mut current_subblock = String::new();
+        let mut current_subblock = "";
         let mut current_entries = Vec::new();
 
         let iterator = if std {
@@ -112,14 +114,14 @@ impl Parser {
 
         let clean = iterator.map(|line| {
             if let Some(i) = line.find('#') {
-                line[..i].to_string()
+                &line[..i]
             } else {
-                line.to_string()
+                line
             }
         });
 
         for line in clean {
-            let line = line.trim().to_string();
+            let line = line.trim();
 
             if line == format!("[{}]", block) {
                 in_block = true;
@@ -132,21 +134,21 @@ impl Parser {
             if in_block {
                 if line.starts_with('(') && line.ends_with(')') {
                     if !current_subblock.is_empty() && !current_entries.is_empty() {
-                        result.push((current_subblock.clone(), current_entries.clone()));
+                        result.push((current_subblock, current_entries.clone()));
                     }
                     current_entries.clear();
-                    current_subblock = line[1..line.len() - 1].to_string();
+                    current_subblock = &line[1..line.len() - 1];
                 } else {
-                    let splitted: Vec<String> = line.split(" = ").map(String::from).collect();
+                    let splitted: Vec<&str> = line.split(" = ").collect();
                     if splitted.len() == 2 {
-                        current_entries.push((splitted[0].clone(), splitted[1].clone()));
+                        current_entries.push((splitted[0], splitted[1]));
                     }
                 }
             }
         }
 
         if !current_subblock.is_empty() && !current_entries.is_empty() {
-            result.push((current_subblock.clone(), current_entries.clone()));
+            result.push((current_subblock, current_entries.clone()));
         }
         result
     }
@@ -177,25 +179,17 @@ pub mod tests {
     #[test]
     fn parser_vars() {
         let parser_mock = Parser {
-            file: PathBuf::new(),
             std_config: String::new(),
             act_config: String::from(MOCK_CONFIG),
         };
 
         let res = parser_mock.parse_vars("block_norm", false);
-        assert_eq!(
-            res,
-            vec![
-                (String::from("j"), String::from("action Up")),
-                (String::from("k"), String::from("action Down"))
-            ]
-        );
+        assert_eq!(res, vec![("j", "action Up"), ("k", "action Down")]);
     }
 
     #[test]
     fn parser_subblocks() {
         let parser_mock = Parser {
-            file: PathBuf::new(),
             std_config: String::new(),
             act_config: String::from(MOCK_CONFIG),
         };
@@ -204,14 +198,8 @@ pub mod tests {
         assert_eq!(
             res,
             vec![
-                (
-                    String::from("1"),
-                    vec![(String::from("text"), String::from("some"))]
-                ),
-                (
-                    String::from("2"),
-                    vec![(String::from("text"), String::from("some2"))]
-                )
+                ("1", vec![("text", "some")]),
+                ("2", vec![("text", "some2")])
             ]
         );
     }
