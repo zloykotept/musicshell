@@ -1,4 +1,6 @@
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Action {
+    None,
     Up,
     Down,
     ChildDir,

@@ -1,12 +1,7 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    usize,
-};
+use std::{collections::HashMap, fs, path::PathBuf};
 
-use crate::{get_action, workspace::*};
-use crossterm::event::KeyEvent;
+use crate::workspace::*;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub struct Config {
     pub keymap_local: HashMap<KeyEvent, Action>,
@@ -51,9 +46,86 @@ impl Parser {
             self.parse_vars("keymaps_local", true)
         };
 
-        let maps;
+        let mut vars_clear: Vec<(&str, Action)> = vec![];
+        for (var_name, var_value) in vars_std.into_iter() {
+            let mut action: Action = Action::None;
+            if let Some((_, new_value)) = vars_act.iter().find(|(x, _)| *x == var_name) {
+                if new_value.contains(" args ") {
+                    let splitted: Vec<&str> = new_value.split(" args ").collect();
+                    if let Ok(arg) = splitted[1].parse::<usize>() {
+                        if let Some(x) = Action::from_str_arg(splitted[0], arg) {
+                            action = x;
+                        } else {
+                            continue;
+                        }
+                    }
+                } else {
+                    if let Some(x) = Action::from_str(*new_value) {
+                        action = x;
+                    } else {
+                        continue;
+                    }
+                }
 
-        maps
+                vars_clear.push((var_name, action));
+            } else {
+                if var_value.contains(" args ") {
+                    let splitted: Vec<&str> = var_value.split(" args ").collect();
+                    if let Ok(arg) = splitted[1].parse::<usize>() {
+                        if let Some(x) = Action::from_str_arg(splitted[0], arg) {
+                            action = x;
+                        } else {
+                            continue;
+                        }
+                    }
+                } else {
+                    if let Some(x) = Action::from_str(var_value) {
+                        action = x;
+                    } else {
+                        continue;
+                    }
+                }
+
+                vars_clear.push((var_name, action));
+            }
+        }
+
+        vars_clear
+            .into_iter()
+            .filter_map(|(keys_str, action)| {
+                let keys_splitted: Vec<&str> = keys_str.split('+').collect();
+                let mut key_modifiers = KeyModifiers::empty();
+                let mut key_code = KeyCode::Null;
+
+                for key in keys_splitted.into_iter() {
+                    match key {
+                        "SHIFT" => key_modifiers.insert(KeyModifiers::SHIFT),
+                        "ALT" => key_modifiers.insert(KeyModifiers::ALT),
+                        "CTRL" => key_modifiers.insert(KeyModifiers::CONTROL),
+                        "SPACE" => key_code = KeyCode::Char(' '),
+                        "ARROW_UP" => key_code = KeyCode::Up,
+                        "ARROW_DOWN" => key_code = KeyCode::Down,
+                        "ARROW_RIGHT" => key_code = KeyCode::Right,
+                        "ARROW_LEFT" => key_code = KeyCode::Left,
+                        "TAB" => key_code = KeyCode::Tab,
+                        "BACKTAB" => key_code = KeyCode::BackTab,
+                        "BACKSPACE" => key_code = KeyCode::Backspace,
+                        "DEL" => key_code = KeyCode::Delete,
+                        "ENTER" => key_code = KeyCode::Enter,
+                        other => {
+                            if other.len() == 1 {
+                                key_code = KeyCode::Char(other.chars().last().unwrap())
+                            } else {
+                                return None;
+                            }
+                        }
+                    }
+                }
+
+                let key_event = KeyEvent::new(key_code, key_modifiers);
+                Some((key_event, action))
+            })
+            .collect()
     }
 
     fn parse_vars<'a>(&'a self, block: &str, std: bool) -> Vec<(&'a str, &'a str)> {
@@ -155,7 +227,11 @@ impl Parser {
 }
 
 pub mod tests {
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf};
+
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    use crate::config::Action;
 
     use super::Parser;
 
@@ -175,6 +251,47 @@ pub mod tests {
         text = some
         (2)
         text = some2";
+
+    const MOCK_CONFIG_STD: &str = "
+    [keymaps_local]
+    SHIFT+SPACE = Exit
+    CTRL+h = RewindBack args 5
+    q = Exit
+    j = Up
+        ";
+
+    const MOCK_CONFIG_ACT: &str = "
+    [keymaps_local]
+    j = Down
+        ";
+
+    #[test]
+    fn parser_get_keymaps() {
+        let parser_mock = Parser {
+            std_config: String::from(MOCK_CONFIG_STD),
+            act_config: String::from(MOCK_CONFIG_ACT),
+        };
+
+        let res = parser_mock.parse_keys(false);
+        let mut res_to_check: HashMap<KeyEvent, Action> = HashMap::new();
+        res_to_check.insert(
+            KeyEvent::new(KeyCode::Char(' '), KeyModifiers::SHIFT),
+            Action::Exit,
+        );
+        res_to_check.insert(
+            KeyEvent::new(KeyCode::Char('h'), KeyModifiers::CONTROL),
+            Action::RewindBack(5),
+        );
+        res_to_check.insert(
+            KeyEvent::new(KeyCode::Char('q'), KeyModifiers::empty()),
+            Action::Exit,
+        );
+        res_to_check.insert(
+            KeyEvent::new(KeyCode::Char('j'), KeyModifiers::empty()),
+            Action::Down,
+        );
+        assert_eq!(res, res_to_check);
+    }
 
     #[test]
     fn parser_vars() {
