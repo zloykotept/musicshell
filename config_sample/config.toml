@@ -1,0 +1,80 @@
+# This is a standard config file
+
+[keymaps_local]
+
+# Navigation
+keymap = [
+    { key = "j",   action = "Down" },
+    { key = "k",   action = "Up" },
+    { key = "l",   action = "ChildDir" },
+    { key = "h",   action = "ParentDir" },
+    { key = "ARROW_DOWN",   action = "Down" },
+    { key = "ARROW_UP",   action = "Up" },
+    { key = "ARROW_RIGHT",   action = "ChildDir" },
+    { key = "ARROW_LEFT",   action = "ParentDir" },
+    { key = "q",   action = "Exit" },
+    { key = "CTRL+c", mods = ["CTRL"],  action = "Exit" }
+]
+
+# Filesystem
+[keymaps_local.filesystem]
+keymap = [
+    { key = "y",  action = "Copy" },
+    { key = "d",  action = "Delete" },
+    { key = "c",  action = "Cut" },
+    { key = "p",  action = "Paste" },
+    { key = "r",  action = "Rename" },
+    { key = "o",  action = "Play" },
+    { key = "a",  action = "CreateDir" },
+    { key = "/",  action = "Find" },
+    { key = "v",  action = "ToggleVisualMode" },
+    { key = "SHIFT+v", mods = ["SHIFT"], action = "SelectAll" },
+    { key = "TAB",  action = "ToggleTreeView" }
+]
+
+# Queue
+[keymaps_local.queue]
+keymap = [
+    { key = "SHIFT+d", mods = ["SHIFT"], action = "ClearQueue" },
+    { key = "i",  action = "AddToQueue" },
+    { key = "SHIFT+i", mods = ["SHIFT"], action = "AddAllToQueue" }
+]
+
+# Player (args: seconds)
+[keymaps_local.player]
+keymap = [
+    { key = "SPACE",  action = "TogglePause" },
+    { key = "CTRL+r", mods = ["CTRL"], action = "ToggleRepeat" },
+    { key = "CTRL+j", mods = ["CTRL"], action = "QueueNext" },
+    { key = "CTRL+k", mods = ["CTRL"], action = "QueuePrev" },
+    { key = "CTRL+l", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "CTRL+h", mods = ["CTRL"], arg = 5, action = "RewindBack" },
+    { key = "CTRL+ARROW_DOWN", mods = ["CTRL"], action = "QueueNext" },
+    { key = "CTRL+ARROW_UP", mods = ["CTRL"], action = "QueuePrev" },
+    { key = "CTRL+ARROW_RIGHT", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "CTRL+ARROW_LEFT", mods = ["CTRL"], arg = 5, action = "RewindBack" }
+]
+
+# Volume Control (args: Step 0-100)
+[keymaps_local.volume]
+keymap = [
+    { key = "[",  arg = 5, action = "VolumeDecrease" },
+    { key = "]",  arg = 5, action = "VolumeIncrease" }
+]
+
+# Theme Selector
+[keymaps_local.theme]
+keymap = [
+    { key = "t",  action = "SelectTheme" }
+]
+
+# Themes
+[themes]
+[themes.gruvbox]
+text = "#ffffff"
+text_headline = "#ffffff"
+background = "#ffffff"
+border = "#ffffff"
+button = "#ffffff"
+progress_bar_elapsed = "#ffffff"
+progress_bar_remaining = "#ffffff"
