@@ -9,17 +9,33 @@ use toml::Value;
 pub struct Config {
     pub keymap_local: HashMap<KeyEvent, Action>,
     pub keymap_global: HashMap<KeyEvent, Action>,
+    pub themes: Vec<Theme>,
 }
 
 impl Config {
     pub fn new(parser: &Parser) -> Result<Self> {
         let keymap_local = parser.parse_keys(false)?;
         let keymap_global = parser.parse_keys(true)?;
+        let themes = parser.parse_themes()?;
         Ok(Config {
             keymap_local,
             keymap_global,
+            themes,
         })
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Theme {
+    #[serde(default)]
+    name: String,
+    text: String,
+    text_headline: String,
+    background: String,
+    border: String,
+    button: String,
+    progress_bar_elapsed: String,
+    progress_bar_remaining: String,
 }
 
 pub struct Parser {
@@ -76,26 +92,29 @@ impl Parser {
                     action = Action::from_str(&entry.action).unwrap_or(Action::None);
                 }
 
-                let mut key_code = KeyCode::Null;
+                let key_code = match entry.key.as_str() {
+                    "SPACE" => KeyCode::Char(' '),
+                    "BACKSPACE" => KeyCode::Backspace,
+                    "TAB" => KeyCode::Tab,
+                    "BACKTAB" => KeyCode::BackTab,
+                    "DEL" => KeyCode::Delete,
+                    "ENTER" => KeyCode::Enter,
+                    "ESC" => KeyCode::Esc,
+                    "ARROW_UP" => KeyCode::Up,
+                    "ARROW_DOWN" => KeyCode::Down,
+                    "ARROW_LEFT" => KeyCode::Left,
+                    "ARROW_RIGHT" => KeyCode::Right,
+                    k if k.starts_with('F') => k[1..]
+                        .parse::<u8>()
+                        .ok()
+                        .filter(|&n| (1..=12).contains(&n))
+                        .map(KeyCode::F)
+                        .unwrap_or(KeyCode::Null),
+                    k if k.len() == 1 => KeyCode::Char(k.chars().next().unwrap()),
+                    _ => KeyCode::Null,
+                };
+
                 let mut key_modifiers = KeyModifiers::empty();
-                match entry.key.as_str() {
-                    "SPACE" => key_code = KeyCode::Char(' '),
-                    "BACKSPACE" => key_code = KeyCode::Backspace,
-                    "TAB" => key_code = KeyCode::Tab,
-                    "BACKTAB" => key_code = KeyCode::BackTab,
-                    "DEL" => key_code = KeyCode::Delete,
-                    "ENTER" => key_code = KeyCode::Enter,
-                    "ESC" => key_code = KeyCode::Esc,
-                    "ARROW_UP" => key_code = KeyCode::Up,
-                    "ARROW_DOWN" => key_code = KeyCode::Down,
-                    "ARROW_LEFT" => key_code = KeyCode::Left,
-                    "ARROW_RIGHT" => key_code = KeyCode::Right,
-                    char => {
-                        if char.len() == 1 {
-                            key_code = KeyCode::Char(char.parse::<char>().unwrap());
-                        }
-                    }
-                }
                 if let Some(mods) = entry.mods {
                     for modificator in mods {
                         match modificator.as_str() {
@@ -114,5 +133,19 @@ impl Parser {
             .collect();
 
         Ok(result)
+    }
+
+    pub fn parse_themes(&self) -> Result<Vec<Theme>> {
+        let std_err = "Can not parse any theme from config file, please use sample config if you don't know what are you doing";
+        let themes = self.config.get("themes").ok_or_else(|| anyhow!(std_err))?;
+        let mut themes_vec: Vec<Theme> = vec![];
+
+        for (theme_name, theme_vars) in themes.as_table().unwrap() {
+            let mut theme: Theme = toml::de::from_str(&theme_vars.as_table().unwrap().to_string())?;
+            theme.name = theme_name.to_string();
+            themes_vec.push(theme);
+        }
+
+        Ok(themes_vec)
     }
 }
