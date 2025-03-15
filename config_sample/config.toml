@@ -1,8 +1,17 @@
 # This is a standard config file
 
+[keymaps_global]
+
+[keymaps_global.all]
+# All in one
+keymap = [
+    { key = "SPACE", mods = ["CTRL", "SHIFT"], action = "TogglePause" }
+]
+
 [keymaps_local]
 
 # Navigation
+[keymaps_local.navigation]
 keymap = [
     { key = "j",   action = "Down" },
     { key = "k",   action = "Up" },
@@ -13,7 +22,7 @@ keymap = [
     { key = "ARROW_RIGHT",   action = "ChildDir" },
     { key = "ARROW_LEFT",   action = "ParentDir" },
     { key = "q",   action = "Exit" },
-    { key = "CTRL+c", mods = ["CTRL"],  action = "Exit" }
+    { key = "c", mods = ["CTRL"],  action = "Exit" }
 ]
 
 # Filesystem
@@ -28,31 +37,31 @@ keymap = [
     { key = "a",  action = "CreateDir" },
     { key = "/",  action = "Find" },
     { key = "v",  action = "ToggleVisualMode" },
-    { key = "SHIFT+v", mods = ["SHIFT"], action = "SelectAll" },
+    { key = "V", action = "SelectAll" },
     { key = "TAB",  action = "ToggleTreeView" }
 ]
 
 # Queue
 [keymaps_local.queue]
 keymap = [
-    { key = "SHIFT+d", mods = ["SHIFT"], action = "ClearQueue" },
+    { key = "D", action = "ClearQueue" },
     { key = "i",  action = "AddToQueue" },
-    { key = "SHIFT+i", mods = ["SHIFT"], action = "AddAllToQueue" }
+    { key = "I", action = "AddAllToQueue" }
 ]
 
 # Player (args: seconds)
 [keymaps_local.player]
 keymap = [
     { key = "SPACE",  action = "TogglePause" },
-    { key = "CTRL+r", mods = ["CTRL"], action = "ToggleRepeat" },
-    { key = "CTRL+j", mods = ["CTRL"], action = "QueueNext" },
-    { key = "CTRL+k", mods = ["CTRL"], action = "QueuePrev" },
-    { key = "CTRL+l", mods = ["CTRL"], arg = 5, action = "RewindForward" },
-    { key = "CTRL+h", mods = ["CTRL"], arg = 5, action = "RewindBack" },
-    { key = "CTRL+ARROW_DOWN", mods = ["CTRL"], action = "QueueNext" },
-    { key = "CTRL+ARROW_UP", mods = ["CTRL"], action = "QueuePrev" },
-    { key = "CTRL+ARROW_RIGHT", mods = ["CTRL"], arg = 5, action = "RewindForward" },
-    { key = "CTRL+ARROW_LEFT", mods = ["CTRL"], arg = 5, action = "RewindBack" }
+    { key = "r", mods = ["CTRL"], action = "ToggleRepeat" },
+    { key = "j", mods = ["CTRL"], action = "QueueNext" },
+    { key = "k", mods = ["CTRL"], action = "QueuePrev" },
+    { key = "l", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "h", mods = ["CTRL"], arg = 5, action = "RewindBack" },
+    { key = "ARROW_DOWN", mods = ["CTRL"], action = "QueueNext" },
+    { key = "ARROW_UP", mods = ["CTRL"], action = "QueuePrev" },
+    { key = "ARROW_RIGHT", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "ARROW_LEFT", mods = ["CTRL"], arg = 5, action = "RewindBack" }
 ]
 
 # Volume Control (args: Step 0-100)

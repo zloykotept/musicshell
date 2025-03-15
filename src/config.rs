@@ -1,6 +1,7 @@
+#![allow(dead_code, unused_variables)]
 use std::{collections::HashMap, fs, path::PathBuf};
 
-use crate::workspace::*;
+use crate::actions::*;
 use anyhow::{anyhow, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::Deserialize;
