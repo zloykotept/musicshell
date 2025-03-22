@@ -1,7 +1,7 @@
 # This is a standard config file
 [preferences]
 selected_theme = "sexy"
-playlists_folder = "D:\Dokuments\music\playlists"
+playlists_folder = "D:/Dokuments/music/playlists"
 
 [keymaps]
 
@@ -27,13 +27,15 @@ keymap = [
 [keymaps.filesystem]
 keymap = [
     { key = "o",  action = "Select" },
-    { key = "TAB",  action = "ToggleTreeView" }
+    { key = "TAB",  action = "ToggleTreeView" },
+    { key = "BACKTAB", mods = ["SHIFT"], action = "ToggleTreeViewBack" },
+    { key = "d", action = "Delete" },
+    { key = "DEL", action = "Delete" },
 ]
 
 # Queue
 [keymaps.queue]
 keymap = [
-	{ key = "d", action = "DeleteFromQueue" },
     { key = "D", action = "ClearQueue" },
     { key = "i",  action = "AddToQueue" },
     { key = "I", action = "AddAllToQueue" }

@@ -16,7 +16,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(parser: &Parser) -> Result<Self> {
+    pub fn new(parser: Parser) -> Result<Self> {
         let keymap_local = parser.parse_keys()?;
         let selected_theme = parser.parse_selected_theme()?;
         let playlists_folder = parser.parse_playlists_folder()?;

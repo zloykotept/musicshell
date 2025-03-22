@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
     collections::VecDeque,
+    fs,
     path::PathBuf,
     sync::{Arc, RwLock},
     time::Duration,
@@ -12,10 +13,10 @@ use crossterm::event::{self, read, KeyCode, KeyEventKind};
 
 use crate::{
     player::Player,
-    workspace::{self, Saver, TreeState, Windows, Workspace},
+    workspace::{Saver, TreeState, Windows, Workspace, PLAYLIST_FILE_EXT},
 };
 
-const MUSIC_EXTENSIONS: [&str; 3] = ["mp3", "wav", "ogg"];
+pub const MUSIC_EXTENSIONS: [&str; 3] = ["mp3", "wav", "ogg"];
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Action {
@@ -27,6 +28,7 @@ pub enum Action {
     Exit,
     Select,
     ToggleTreeView,
+    ToggleTreeViewBack,
     ClearQueue,
     AddToQueue,
     AddAllToQueue,
@@ -38,7 +40,7 @@ pub enum Action {
     VolumeDecrease(usize),
     VolumeIncrease(usize),
     SelectTheme,
-    DeleteFromQueue,
+    Delete,
     PlaylistSave,
 }
 
@@ -52,6 +54,7 @@ impl Action {
             "Exit" => Some(Action::Exit),
             "Select" => Some(Action::Select),
             "ToggleTreeView" => Some(Action::ToggleTreeView),
+            "ToggleTreeViewBack" => Some(Action::ToggleTreeViewBack),
             "ClearQueue" => Some(Action::ClearQueue),
             "AddToQueue" => Some(Action::AddToQueue),
             "AddAllToQueue" => Some(Action::AddAllToQueue),
@@ -59,7 +62,7 @@ impl Action {
             "ToggleRepeat" => Some(Action::ToggleRepeat),
             "Skip" => Some(Action::Skip),
             "SelectTheme" => Some(Action::SelectTheme),
-            "DeleteFromQueue" => Some(Action::DeleteFromQueue),
+            "Delete" => Some(Action::Delete),
             "PlaylistSave" => Some(Action::PlaylistSave),
             _ => None,
         }
@@ -130,10 +133,12 @@ impl Action {
             Self::Down if current_window == Windows::None => {
                 let (mut selected, list_len) = {
                     let mutex = workspace.read().unwrap();
-                    let list_len = if mutex.tree.state == workspace::TreeState::Files {
+                    let list_len = if mutex.tree.state == TreeState::Files {
                         mutex.tree.path_list.len()
-                    } else {
+                    } else if mutex.tree.state == TreeState::Queue {
                         player.read().unwrap().queue.len()
+                    } else {
+                        mutex.tree.playlists.len()
                     };
 
                     (mutex.tree.selected, list_len)
@@ -173,7 +178,7 @@ impl Action {
                         mutex.tree.cwd = element;
                         return Ok(());
                     } else if element.is_file()                      // if we are in files and at
-                                                                     // a file
+                                                                     // a music file
                         && element.extension().is_some()
                         && MUSIC_EXTENSIONS
                             .contains(&element.extension().unwrap().to_str().unwrap())
@@ -188,13 +193,24 @@ impl Action {
                         // error
                         return Ok(());
                     }
+                } else if mutex.tree.state == TreeState::Playlists {
+                    let selected = {
+                        let mutex = workspace.read().unwrap();
+                        let selected = mutex.tree.selected;
+
+                        mutex.tree.playlists[selected].clone()
+                    };
+
+                    player.write().unwrap().clear();
+                    player.write().unwrap().queue =
+                        Saver::restore_playlist(&selected, &mutex.config.playlists_folder)?;
                 }
             }
             Self::ParentDir if current_window == Windows::None => {
                 let dir = {
                     let mutex = workspace.read().unwrap();
 
-                    if mutex.tree.state == TreeState::Queue {
+                    if mutex.tree.state != TreeState::Files {
                         return Ok(());
                     }
 
@@ -222,11 +238,17 @@ impl Action {
                 mutex.tree.state = mutex.tree.state.next();
                 mutex.tree.selected = 0;
             }
+            Self::ToggleTreeViewBack if current_window == Windows::None => {
+                let mut mutex = workspace.write().unwrap();
+
+                mutex.tree.state = mutex.tree.state.prev();
+                mutex.tree.selected = 0;
+            }
             Self::AddToQueue if current_window == Windows::None => {
                 let (mut queue, element) = {
                     let mutex = workspace.read().unwrap();
 
-                    if mutex.tree.state == TreeState::Queue {
+                    if mutex.tree.state != TreeState::Files {
                         return Ok(());
                     }
 
@@ -249,21 +271,34 @@ impl Action {
                 player.write().unwrap().queue = VecDeque::new();
                 player.write().unwrap().restart();
             }
-            Self::DeleteFromQueue if current_window == Windows::None => {
-                let (mut queue, selected) = {
-                    let mutex = workspace.read().unwrap();
+            Self::Delete if current_window == Windows::None => {
+                let tree_state = workspace.read().unwrap().tree.state.clone();
 
-                    if mutex.tree.state == TreeState::Files {
+                if tree_state == TreeState::Queue {
+                    let (mut queue, selected) = {
+                        let mutex = workspace.read().unwrap();
+
+                        (player.read().unwrap().queue.clone(), mutex.tree.selected)
+                    };
+
+                    if queue.is_empty() {
                         return Ok(());
                     }
-                    (player.read().unwrap().queue.clone(), mutex.tree.selected)
-                };
+                    queue.remove(selected);
+                    player.write().unwrap().queue = queue;
+                } else if tree_state == TreeState::Playlists {
+                    let (selected, playlists_dir) = {
+                        let mutex = workspace.read().unwrap();
+                        let selected = mutex.tree.selected;
+                        (
+                            mutex.tree.playlists[selected].clone(),
+                            mutex.config.playlists_folder.clone(),
+                        )
+                    };
 
-                if queue.is_empty() {
-                    return Ok(());
+                    fs::remove_file(playlists_dir.join(selected + "." + PLAYLIST_FILE_EXT))?;
+                    Saver::restore_playlists(Arc::clone(&workspace), &playlists_dir)?;
                 }
-                queue.remove(selected);
-                player.write().unwrap().queue = queue;
             }
             Self::Skip => {
                 let mut mutex = player.write().unwrap();
@@ -335,7 +370,7 @@ impl Action {
                 workspace.write().unwrap().config.selected_theme = selected;
             }
 
-            // playlist save
+            // playlist-related functions
             Self::PlaylistSave if current_window == Windows::None => {
                 workspace.write().unwrap().stdin_buffer.clear();
                 workspace.write().unwrap().window = Windows::PlaylistSave;
@@ -374,9 +409,14 @@ impl Action {
                                     )
                                 };
 
-                                Saver::save_playlist(&save_path, name, Arc::clone(&player))?;
-                                workspace.write().unwrap().stdin_buffer.clear();
-                                workspace.write().unwrap().window = Windows::None;
+                                let queue = player.read().unwrap().queue.clone();
+                                Saver::save_playlist(&save_path, name.clone(), queue)?;
+
+                                let mut mutex = workspace.write().unwrap();
+                                mutex.stdin_buffer.clear();
+                                mutex.window = Windows::None;
+                                mutex.tree.playlists.push(name);
+
                                 return Ok(());
                             }
                         }

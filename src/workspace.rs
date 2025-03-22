@@ -15,7 +15,7 @@ use crate::{
     player::{self, Player},
 };
 
-const PLAYLIST_FILE_EXT: &str = ".plist";
+pub const PLAYLIST_FILE_EXT: &str = "plist";
 
 // Structure for saving state ==============================
 #[derive(Serialize, Deserialize, Debug)]
@@ -59,15 +59,10 @@ impl Saver {
         Ok(())
     }
 
-    pub fn save_playlist(
-        save_dir: &PathBuf,
-        name: String,
-        player: Arc<RwLock<Player>>,
-    ) -> Result<()> {
-        let queue = player.read().unwrap().queue.clone();
+    pub fn save_playlist(save_dir: &PathBuf, name: String, queue: VecDeque<PathBuf>) -> Result<()> {
         let encoded = bincode::serialize(&queue)?;
 
-        let new_path = save_dir.join(name + PLAYLIST_FILE_EXT);
+        let new_path = save_dir.join(name + "." + PLAYLIST_FILE_EXT);
         fs::write(new_path, encoded)
             .map_err(|e| anyhow!("Problem with playlists folder:\n{}", e))?;
 
@@ -84,7 +79,8 @@ impl Saver {
     }
 
     pub fn restore_playlists(workspace: Arc<RwLock<Workspace>>, dir: &PathBuf) -> Result<()> {
-        let mutex = workspace.write().unwrap();
+        let mut mutex = workspace.write().unwrap();
+        mutex.tree.playlists.clear();
 
         for entry in dir.read_dir()? {
             if entry.is_err() {
@@ -92,9 +88,33 @@ impl Saver {
             }
 
             let entry = entry.unwrap().path();
+            if entry.exists()
+                && entry.extension().is_some()
+                && entry.extension().unwrap().to_str().unwrap() == PLAYLIST_FILE_EXT
+            {
+                let name = entry.file_stem().unwrap().to_str().unwrap();
+                mutex.tree.playlists.push(name.to_string());
+            }
         }
 
         Ok(())
+    }
+
+    pub fn restore_playlist(name: &str, dir: &PathBuf) -> Result<VecDeque<PathBuf>> {
+        for entry in dir.read_dir()? {
+            if entry.is_err() {
+                continue;
+            }
+
+            let entry = entry.unwrap().path();
+            if entry.exists() && entry.file_stem().unwrap().to_str().unwrap() == name {
+                let encoded = fs::read(entry)?;
+                return bincode::deserialize(&encoded)
+                    .map_err(|e| anyhow!("Error occured while parsing file:\n{e}"));
+            }
+        }
+
+        Err(anyhow!("Playlist is not found in filesystem"))
     }
 }
 
@@ -103,7 +123,6 @@ impl Saver {
 pub enum Windows {
     None,
     ThemeSelect,
-    Search,
     PlaylistSave,
     Error(String),
 }
@@ -148,12 +167,22 @@ impl TreeState {
             Self::Files
         }
     }
+
+    pub fn prev(&self) -> Self {
+        if *self == Self::Playlists {
+            Self::Queue
+        } else if *self == Self::Files {
+            Self::Playlists
+        } else {
+            Self::Files
+        }
+    }
 }
 
 pub struct Tree {
     pub cwd: PathBuf,
     pub path_list: Vec<PathBuf>,
-    pub playlists: HashMap<String, PathBuf>,
+    pub playlists: Vec<String>,
     pub selected: usize,
     pub state: TreeState,
 }
@@ -172,7 +201,7 @@ impl Tree {
             path_list,
             selected: 0,
             state: TreeState::Files,
-            playlists: HashMap::new(),
+            playlists: vec![],
         })
     }
 }

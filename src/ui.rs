@@ -13,11 +13,10 @@ use ratatui::{
 };
 
 use crate::{
+    actions::MUSIC_EXTENSIONS,
     player::Player,
-    workspace::{TreeState, Windows, Workspace},
+    workspace::{TreeState, Windows, Workspace, PLAYLIST_FILE_EXT},
 };
-
-const MUSIC_EXTENSIONS: [&str; 3] = ["mp3", "wav", "ogg"];
 
 pub struct UI;
 
@@ -104,6 +103,11 @@ impl UI {
                 ));
                 let music_file_style =
                     Style::default().fg(Color::Rgb(theme.music[0], theme.music[1], theme.music[2]));
+                let progress_style = Style::default().fg(Color::Rgb(
+                    theme.progress_bar_elapsed[0],
+                    theme.progress_bar_elapsed[1],
+                    theme.progress_bar_elapsed[2],
+                ));
 
                 // player block ============================================
                 let player_block = Block::default()
@@ -130,8 +134,10 @@ impl UI {
                     .map(|x| {
                         if x == TreeState::Files {
                             "Files"
-                        } else {
+                        } else if x == TreeState::Queue {
                             "Queue"
+                        } else {
+                            "Playlists"
                         }
                     })
                     .unwrap();
@@ -201,11 +207,7 @@ impl UI {
                     0.0
                 };
                 let statusbar_progress = Paragraph::new("\u{2588}".repeat(percantage as usize))
-                    .fg(Color::Rgb(
-                        theme.progress_bar_elapsed[0],
-                        theme.progress_bar_elapsed[1],
-                        theme.progress_bar_elapsed[2],
-                    ))
+                    .style(progress_style)
                     .block(statusbar);
 
                 // list items ======================================================
@@ -225,12 +227,15 @@ impl UI {
                                 if MUSIC_EXTENSIONS.contains(&x) {
                                     let formatted = format!("{} {}", '\u{f0387}', path_str);
                                     return ListItem::new(formatted).style(music_file_style);
+                                } else if x == PLAYLIST_FILE_EXT {
+                                    let formatted = format!("{} {}", '\u{f0cb8}', path_str);
+                                    return ListItem::new(formatted).style(progress_style);
                                 }
                             }
                             ListItem::new(path_str)
                         })
                         .collect();
-                } else {
+                } else if ctx.tree.state == TreeState::Queue {
                     list_items = player_mutex
                         .queue
                         .iter()
@@ -244,6 +249,13 @@ impl UI {
                             }
                             ListItem::new(path.file_name().unwrap().to_str().unwrap())
                         })
+                        .collect();
+                } else {
+                    list_items = ctx
+                        .tree
+                        .playlists
+                        .iter()
+                        .map(|name| ListItem::new(name.clone()).style(progress_style))
                         .collect();
                 }
 
