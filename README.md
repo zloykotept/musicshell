@@ -25,6 +25,5 @@ Rodio depends on [symphonia decoding library](https://github.com/pdeljanov/Symph
 ## Goals
 * ✔ Theme selector
 * Search files
-* Playlists
-* Picture from mp3
+* ✔ Playlists
 * Play radio streams
