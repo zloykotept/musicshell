@@ -1,0 +1,129 @@
+# This is a standard config file
+[preferences]
+selected_theme = "sexy"
+playlists_folder = "D:/music/plylists"
+
+[keymaps]
+
+# Navigation
+[keymaps.navigation]
+keymap = [
+    { key = "j",   action = "Down" },
+    { key = "k",   action = "Up" },
+    { key = "l",   action = "Select" },
+    { key = "h",   action = "ParentDir" },
+    { key = "ARROW_DOWN",   action = "Down" },
+    { key = "ARROW_UP",   action = "Up" },
+    { key = "ARROW_RIGHT",   action = "Select" },
+    { key = "ARROW_LEFT",   action = "ParentDir" },
+    { key = "BACKSPACE", action = "ParentDir" },
+    { key = "q",   action = "Exit" },
+    { key = "c", mods = ["CTRL"],  action = "Exit" },
+    { key = "ENTER",  action = "Select" },
+    { key = "ESC",  action = "Escape" },
+]
+
+# Filesystem
+[keymaps.filesystem]
+keymap = [
+    { key = "o",  action = "Select" },
+    { key = "TAB",  action = "ToggleTreeView" }
+]
+
+# Queue
+[keymaps.queue]
+keymap = [
+	{ key = "d", action = "DeleteFromQueue" },
+    { key = "D", action = "ClearQueue" },
+    { key = "i",  action = "AddToQueue" },
+    { key = "I", action = "AddAllToQueue" }
+]
+
+# Player (args: seconds)
+[keymaps.player]
+keymap = [
+    { key = "SPACE",  action = "TogglePause" },
+    { key = "r", action = "ToggleRepeat" },
+    { key = "j", mods = ["CTRL"], action = "Skip" },
+    { key = "l", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "h", mods = ["CTRL"], arg = 5, action = "RewindBack" },
+    { key = "ARROW_DOWN", mods = ["CTRL"], action = "Skip" },
+    { key = "ARROW_RIGHT", mods = ["CTRL"], arg = 5, action = "RewindForward" },
+    { key = "ARROW_LEFT", mods = ["CTRL"], arg = 5, action = "RewindBack" },
+    { key = "s", action = "PlaylistSave" }
+]
+
+# Volume Control (args: Step 0-100)
+[keymaps.volume]
+keymap = [
+    { key = "[",  arg = 2, action = "VolumeDecrease" },
+    { key = "]",  arg = 2, action = "VolumeIncrease" }
+]
+
+# Theme Selector
+[keymaps.theme]
+keymap = [
+    { key = "t", mods = ["CTRL"], action = "SelectTheme" }
+]
+
+# Themes
+[themes]
+[themes.gruvbox-dark]
+text = [235, 219, 178]
+text_headline = [250, 189, 47]
+background = [50, 48, 47]
+border = [204, 36, 29]
+music = [214, 93, 14]
+progress_bar_elapsed = [184, 187, 38]
+highlighted = [90, 80, 70]
+directories = [131, 165, 152]
+error = [255, 0, 0]
+error_text = [255, 255, 255]
+
+[themes.sexy]
+text = [197, 200, 198]
+text_headline = [178, 148, 187]
+background = [29, 31, 33]
+border = [129, 162, 190]
+music = [222, 147, 95]
+progress_bar_elapsed = [140, 148, 64]
+highlighted = [55, 59, 65]
+directories = [94, 141, 135]
+error = [255, 0, 0]
+error_text = [255, 255, 255]
+
+[themes.onedark]
+text = [171, 178, 191]
+text_headline = [229, 192, 123]
+background = [40, 44, 52]
+border = [86, 182, 194]
+music = [224, 108, 117]
+progress_bar_elapsed = [152, 195, 121]
+highlighted = [62, 66, 74]
+directories = [97, 175, 239]
+error = [255, 0, 0]
+error_text = [255, 255, 255]
+
+[themes.ubuntu-terminal]
+text = [238, 238, 236]
+text_headline = [255, 233, 79]
+background = [48, 10, 36]
+border = [6, 152, 154]
+music = [204, 0, 0]
+progress_bar_elapsed = [78, 154, 6]
+highlighted = [77, 25, 60]
+directories = [52, 101, 164]
+error = [255, 0, 0]
+error_text = [255, 255, 255]
+
+[themes.solarized-dark]
+text = [141, 161, 161]
+text_headline = [108, 113, 196]
+background = [0, 43, 54]
+border = [42, 161, 152]
+music = [220, 50, 47]
+progress_bar_elapsed = [133, 153, 0]
+highlighted = [8, 63, 77]
+directories = [38, 139, 210]
+error = [255, 0, 0]
+error_text = [255, 255, 255]
