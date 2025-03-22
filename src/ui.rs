@@ -307,8 +307,30 @@ impl UI {
                     .constraints([Constraint::Percentage(50)])
                     .split(layout_error_horizontal[0]);
 
-                // drawing what is needed
+                // save playlist input
+                let save_playlist_block = Block::default()
+                    .title("Enter playlist name")
+                    .title_style(title_style)
+                    .title_alignment(Alignment::Center)
+                    .borders(Borders::ALL)
+                    .style(block_style);
+                let layout_save_playlist_horizontal = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .flex(Flex::Center)
+                    .constraints([Constraint::Length(32)])
+                    .split(size);
+                let layout_save_playlist = Layout::default()
+                    .direction(Direction::Vertical)
+                    .flex(Flex::Center)
+                    .constraints([Constraint::Length(3)])
+                    .split(layout_save_playlist_horizontal[0]);
 
+                // save playlist input text
+                let save_playlist_widget = Paragraph::new(ctx.stdin_buffer.clone() + "\u{258f}")
+                    .block(save_playlist_block)
+                    .style(text_style);
+
+                // drawing what is needed
                 list_state.select(Some(ctx.tree.selected));
 
                 if ctx.window == Windows::None {
@@ -330,6 +352,9 @@ impl UI {
                 } else if let Windows::Error(_) = ctx.window {
                     frame.render_widget(Clear, layout_error[0]);
                     frame.render_widget(error_paragraph, layout_error[0]);
+                } else if ctx.window == Windows::PlaylistSave {
+                    frame.render_widget(Clear, layout_save_playlist[0]);
+                    frame.render_widget(save_playlist_widget, layout_save_playlist[0]);
                 }
             })?;
 

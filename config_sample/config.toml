@@ -1,7 +1,7 @@
 # This is a standard config file
 [preferences]
 selected_theme = "sexy"
-playlists_folder = "D:/music/plylists"
+playlists_folder = "D:\Dokuments\music\playlists"
 
 [keymaps]
 

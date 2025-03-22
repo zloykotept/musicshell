@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables)]
-
 use std::{
     cmp::Ordering,
     collections::VecDeque,
@@ -9,7 +7,8 @@ use std::{
 };
 
 use anyhow::{Ok, Result};
-use crossterm::event::{self, read};
+use bincode::config;
+use crossterm::event::{self, read, KeyCode, KeyEventKind};
 
 use crate::{
     player::Player,
@@ -40,6 +39,7 @@ pub enum Action {
     VolumeIncrease(usize),
     SelectTheme,
     DeleteFromQueue,
+    PlaylistSave,
 }
 
 impl Action {
@@ -60,6 +60,7 @@ impl Action {
             "Skip" => Some(Action::Skip),
             "SelectTheme" => Some(Action::SelectTheme),
             "DeleteFromQueue" => Some(Action::DeleteFromQueue),
+            "PlaylistSave" => Some(Action::PlaylistSave),
             _ => None,
         }
     }
@@ -114,8 +115,10 @@ impl Action {
         workspace: Arc<RwLock<Workspace>>,
         player: Arc<RwLock<Player>>,
     ) -> Result<()> {
+        let current_window = workspace.read().unwrap().window.clone();
+
         match self {
-            Self::Up if workspace.read().unwrap().window == Windows::None => {
+            Self::Up if current_window == Windows::None => {
                 let mut selected = {
                     let mutex = workspace.read().unwrap();
                     mutex.tree.selected
@@ -124,7 +127,7 @@ impl Action {
                 selected = selected.saturating_sub(1);
                 workspace.write().unwrap().tree.selected = selected;
             }
-            Self::Down if workspace.read().unwrap().window == Windows::None => {
+            Self::Down if current_window == Windows::None => {
                 let (mut selected, list_len) = {
                     let mutex = workspace.read().unwrap();
                     let list_len = if mutex.tree.state == workspace::TreeState::Files {
@@ -141,7 +144,7 @@ impl Action {
                 }
                 workspace.write().unwrap().tree.selected = selected;
             }
-            Self::Select if workspace.read().unwrap().window == Windows::None => {
+            Self::Select if current_window == Windows::None => {
                 let mutex = workspace.read().unwrap();
                 if mutex.tree.state == TreeState::Files {
                     // if we are in files
@@ -187,7 +190,7 @@ impl Action {
                     }
                 }
             }
-            Self::ParentDir if workspace.read().unwrap().window == Windows::None => {
+            Self::ParentDir if current_window == Windows::None => {
                 let dir = {
                     let mutex = workspace.read().unwrap();
 
@@ -213,21 +216,13 @@ impl Action {
                 mutex.tree.selected = 0;
                 mutex.tree.cwd = dir.to_path_buf();
             }
-            Self::ToggleTreeView if workspace.read().unwrap().window == Windows::None => {
-                let current_state = {
-                    let mutex = workspace.read().unwrap();
-                    mutex.tree.state.clone()
-                };
-
+            Self::ToggleTreeView if current_window == Windows::None => {
                 let mut mutex = workspace.write().unwrap();
-                if current_state == TreeState::Files {
-                    mutex.tree.state = TreeState::Queue;
-                } else {
-                    mutex.tree.state = TreeState::Files;
-                }
+
+                mutex.tree.state = mutex.tree.state.next();
                 mutex.tree.selected = 0;
             }
-            Self::AddToQueue if workspace.read().unwrap().window == Windows::None => {
+            Self::AddToQueue if current_window == Windows::None => {
                 let (mut queue, element) = {
                     let mutex = workspace.read().unwrap();
 
@@ -254,7 +249,7 @@ impl Action {
                 player.write().unwrap().queue = VecDeque::new();
                 player.write().unwrap().restart();
             }
-            Self::DeleteFromQueue if workspace.read().unwrap().window == Windows::None => {
+            Self::DeleteFromQueue if current_window == Windows::None => {
                 let (mut queue, selected) = {
                     let mutex = workspace.read().unwrap();
 
@@ -299,16 +294,16 @@ impl Action {
                 let repeat = player.read().unwrap().repeat;
                 player.write().unwrap().repeat = !repeat;
             }
-            Self::SelectTheme => {
-                workspace.write().unwrap().window = Windows::ThemeSelect;
-                workspace.write().unwrap().tree.selected = 0;
-            }
             Self::Escape => {
                 workspace.write().unwrap().window = Windows::None;
             }
 
             // theme selection Window
-            Self::Up if workspace.read().unwrap().window == Windows::ThemeSelect => {
+            Self::SelectTheme if current_window == Windows::None => {
+                workspace.write().unwrap().window = Windows::ThemeSelect;
+                workspace.write().unwrap().tree.selected = 0;
+            }
+            Self::Up if current_window == Windows::ThemeSelect => {
                 let selected = {
                     let mutex = workspace.read().unwrap();
                     mutex.tree.selected
@@ -316,7 +311,7 @@ impl Action {
 
                 workspace.write().unwrap().tree.selected = selected.saturating_sub(1);
             }
-            Self::Down if workspace.read().unwrap().window == Windows::ThemeSelect => {
+            Self::Down if current_window == Windows::ThemeSelect => {
                 let (mut selected, size) = {
                     let mutex = workspace.read().unwrap();
                     (mutex.tree.selected, mutex.config.themes.len())
@@ -327,7 +322,7 @@ impl Action {
                 }
                 workspace.write().unwrap().tree.selected = selected;
             }
-            Self::Select if workspace.read().unwrap().window == Windows::ThemeSelect => {
+            Self::Select if current_window == Windows::ThemeSelect => {
                 let selected = {
                     let mutex = workspace.read().unwrap();
                     let mut sorted_names: Vec<&String> = mutex.config.themes.keys().collect();
@@ -338,6 +333,55 @@ impl Action {
                 };
 
                 workspace.write().unwrap().config.selected_theme = selected;
+            }
+
+            // playlist save
+            Self::PlaylistSave if current_window == Windows::None => {
+                workspace.write().unwrap().stdin_buffer.clear();
+                workspace.write().unwrap().window = Windows::PlaylistSave;
+
+                loop {
+                    if event::poll(Duration::from_millis(100))? {
+                        if let event::Event::Key(key_event) = event::read()? {
+                            if let KeyEventKind::Release = key_event.kind {
+                                continue;
+                            }
+
+                            if let KeyCode::Char(ch) = key_event.code {
+                                workspace.write().unwrap().stdin_buffer.push(ch);
+                                continue;
+                            }
+
+                            if let KeyCode::Esc = key_event.code {
+                                let mut mutex = workspace.write().unwrap();
+                                mutex.window = Windows::None;
+                                mutex.stdin_buffer.clear();
+                                return Ok(());
+                            }
+
+                            if let KeyCode::Backspace = key_event.code {
+                                workspace.write().unwrap().stdin_buffer.pop();
+                                continue;
+                            }
+
+                            if let KeyCode::Enter = key_event.code {
+                                let (save_path, name) = {
+                                    let mutex = workspace.read().unwrap();
+
+                                    (
+                                        mutex.config.playlists_folder.clone(),
+                                        mutex.stdin_buffer.clone(),
+                                    )
+                                };
+
+                                Saver::save_playlist(&save_path, name, Arc::clone(&player))?;
+                                workspace.write().unwrap().stdin_buffer.clear();
+                                workspace.write().unwrap().window = Windows::None;
+                                return Ok(());
+                            }
+                        }
+                    }
+                }
             }
 
             _ => {}

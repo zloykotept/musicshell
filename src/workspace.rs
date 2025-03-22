@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables)]
 use std::{
     cmp::Ordering,
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     env, fs,
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -14,6 +14,8 @@ use crate::{
     config::Config,
     player::{self, Player},
 };
+
+const PLAYLIST_FILE_EXT: &str = ".plist";
 
 // Structure for saving state ==============================
 #[derive(Serialize, Deserialize, Debug)]
@@ -57,6 +59,21 @@ impl Saver {
         Ok(())
     }
 
+    pub fn save_playlist(
+        save_dir: &PathBuf,
+        name: String,
+        player: Arc<RwLock<Player>>,
+    ) -> Result<()> {
+        let queue = player.read().unwrap().queue.clone();
+        let encoded = bincode::serialize(&queue)?;
+
+        let new_path = save_dir.join(name + PLAYLIST_FILE_EXT);
+        fs::write(new_path, encoded)
+            .map_err(|e| anyhow!("Problem with playlists folder:\n{}", e))?;
+
+        Ok(())
+    }
+
     pub fn restore(save_file: &PathBuf) -> Result<Self> {
         let encoded: Vec<u8> = fs::read(save_file)?;
         let mut decoded: Saver = bincode::deserialize(&encoded)?;
@@ -65,14 +82,29 @@ impl Saver {
 
         Ok(decoded)
     }
+
+    pub fn restore_playlists(workspace: Arc<RwLock<Workspace>>, dir: &PathBuf) -> Result<()> {
+        let mutex = workspace.write().unwrap();
+
+        for entry in dir.read_dir()? {
+            if entry.is_err() {
+                continue;
+            }
+
+            let entry = entry.unwrap().path();
+        }
+
+        Ok(())
+    }
 }
 
 // Workspace section =======================================
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Windows {
     None,
     ThemeSelect,
     Search,
+    PlaylistSave,
     Error(String),
 }
 
@@ -87,6 +119,7 @@ pub struct Workspace {
 impl Workspace {
     pub fn new(config: Config) -> Result<Self> {
         let tree = Tree::new()?;
+
         Ok(Workspace {
             config,
             tree,
@@ -102,11 +135,25 @@ impl Workspace {
 pub enum TreeState {
     Files,
     Queue,
+    Playlists,
+}
+
+impl TreeState {
+    pub fn next(&self) -> Self {
+        if *self == Self::Files {
+            Self::Queue
+        } else if *self == Self::Queue {
+            Self::Playlists
+        } else {
+            Self::Files
+        }
+    }
 }
 
 pub struct Tree {
     pub cwd: PathBuf,
     pub path_list: Vec<PathBuf>,
+    pub playlists: HashMap<String, PathBuf>,
     pub selected: usize,
     pub state: TreeState,
 }
@@ -125,6 +172,7 @@ impl Tree {
             path_list,
             selected: 0,
             state: TreeState::Files,
+            playlists: HashMap::new(),
         })
     }
 }

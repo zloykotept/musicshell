@@ -1,5 +1,5 @@
 #![allow(dead_code, unused_variables)]
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, str::FromStr};
 
 use crate::actions::*;
 use anyhow::{anyhow, Result};
@@ -12,17 +12,20 @@ pub struct Config {
     pub keymap_local: HashMap<KeyEvent, Action>,
     pub themes: HashMap<String, Theme>,
     pub selected_theme: String,
+    pub playlists_folder: PathBuf,
 }
 
 impl Config {
     pub fn new(parser: &Parser) -> Result<Self> {
         let keymap_local = parser.parse_keys()?;
         let selected_theme = parser.parse_selected_theme()?;
+        let playlists_folder = parser.parse_playlists_folder()?;
         let themes = parser.parse_themes()?;
         Ok(Config {
             keymap_local,
             themes,
             selected_theme,
+            playlists_folder,
         })
     }
 }
@@ -149,20 +152,34 @@ impl Parser {
     }
 
     pub fn parse_selected_theme(&self) -> Result<String> {
-        let std_err = "Wrong config format";
-
         let table = self
             .config
             .get("preferences")
-            .ok_or_else(|| anyhow!(std_err))?
+            .ok_or_else(|| anyhow!("Expected \"preferences\" table to be in config file"))?
             .as_table()
-            .ok_or_else(|| anyhow!(std_err))?;
+            .ok_or_else(|| anyhow!("Expected \"preferences\" to be a table"))?;
         let selected_theme = table
             .get("selected_theme")
-            .ok_or_else(|| anyhow!(std_err))?
+            .ok_or_else(|| anyhow!("Expected \"selected_theme\" to be in preferences table"))?
             .as_str()
-            .ok_or_else(|| anyhow!(std_err))?;
+            .ok_or_else(|| anyhow!("Expected \"selected_theme\" to be a string"))?;
 
         Ok(selected_theme.to_string())
+    }
+
+    pub fn parse_playlists_folder(&self) -> Result<PathBuf> {
+        let table = self
+            .config
+            .get("preferences")
+            .ok_or_else(|| anyhow!("Expected \"preferences\" table to be in config file"))?
+            .as_table()
+            .ok_or_else(|| anyhow!("Expected \"preferences\" to be a table"))?;
+        let selected_theme = table
+            .get("playlists_folder")
+            .ok_or_else(|| anyhow!("Expected \"playlists_folder\" to be in preferences table"))?
+            .as_str()
+            .ok_or_else(|| anyhow!("Expected \"playlists_folder\" to be a string"))?;
+
+        PathBuf::from_str(selected_theme).map_err(|e| anyhow!(e))
     }
 }
