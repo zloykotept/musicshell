@@ -8,7 +8,6 @@ use std::{
     thread,
 };
 
-use actions::Action;
 use anyhow::{anyhow, Ok, Result};
 use config::{Config, Parser};
 use player::Player;
@@ -85,9 +84,9 @@ fn main() -> Result<()> {
 
     // run program
     thread::spawn(move || player::main_loop(player_ptr_3));
-    thread::spawn(move || UI::draw_cycle(workspace_2, player_ptr_2, terminal));
+    thread::spawn(move || UI::main_loop(workspace_2, player_ptr_2, terminal));
 
-    let action_handler_result = Action::action_handler(workspace_1, player_ptr_1, &save_file);
+    let action_handler_result = actions::main_loop(workspace_1, player_ptr_1, &save_file);
     match action_handler_result {
         std::result::Result::Ok(_) => {}
         Err(e) => {

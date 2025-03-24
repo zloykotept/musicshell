@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
     DefaultTerminal,
 };
@@ -21,7 +21,7 @@ use crate::{
 pub struct UI;
 
 impl UI {
-    pub fn draw_cycle(
+    pub fn main_loop(
         workspace: Arc<RwLock<Workspace>>,
         player: Arc<RwLock<Player>>,
         mut terminal: DefaultTerminal,
