@@ -242,7 +242,7 @@ impl UI {
                         .enumerate()
                         .map(|(index, path)| {
                             if !player_mutex.queue.is_empty()
-                                && index == player_mutex.song_index - 1
+                                && index == player_mutex.song_index.saturating_sub(1)
                             {
                                 return ListItem::new(path.file_name().unwrap().to_str().unwrap())
                                     .style(music_file_style);

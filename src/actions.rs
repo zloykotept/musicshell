@@ -201,9 +201,15 @@ impl Action {
                         mutex.tree.playlists[selected].clone()
                     };
 
+                    player.write().unwrap().song_index = 0;
                     player.write().unwrap().clear();
                     player.write().unwrap().queue =
                         Saver::restore_playlist(&selected, &mutex.config.playlists_folder)?;
+                } else {
+                    // if in queue
+                    let index = mutex.tree.selected;
+                    player.write().unwrap().song_index = index;
+                    player.write().unwrap().clear();
                 }
             }
             Self::ParentDir if current_window == Windows::None => {
